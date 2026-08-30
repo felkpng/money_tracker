@@ -98,6 +98,10 @@
       transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
     }
 
+    .progress-bar-fill {
+      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -122,7 +126,7 @@
         </h1>
       </div>
     </div>
-
+    
     <!-- Мини плашка: Траты месяца -->
     <div class="px-3.5 py-1.5 rounded-2xl glass-card flex flex-col items-end border border-dark-border shadow-sm">
       <span class="text-[10px] uppercase font-bold tracking-wider text-dark-muted">Траты месяца</span>
@@ -132,23 +136,23 @@
 
   <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
   <main class="flex-1 px-4 pt-2 pb-28 max-w-md mx-auto w-full">
-
+    
     <!-- ---------------------------------------------------- -->
-    <!-- ЭКРАН 1: ВВОД РАСХОДА (ПО ЦЕНТРУ В МЕНЮ)              -->
+    <!-- ЭКРАН 1: ВВОД РАСХОДА (ГЛАВНЫЙ)                       -->
     <!-- ---------------------------------------------------- -->
     <section id="screen-input" class="screen space-y-4">
-
+      
       <!-- Ввод суммы -->
       <div class="glass-card rounded-3xl p-6 text-center relative overflow-hidden shadow-lg">
         <div class="absolute -top-12 -left-12 w-32 h-32 bg-lime-accent/10 rounded-full blur-2xl pointer-events-none"></div>
         <p class="text-xs font-semibold uppercase tracking-wider text-dark-muted mb-1">Сумма расхода</p>
-
+        
         <div class="flex items-center justify-center gap-2">
-          <input
-            type="number"
-            id="expense-amount"
-            inputmode="decimal"
-            placeholder="0"
+          <input 
+            type="number" 
+            id="expense-amount" 
+            inputmode="decimal" 
+            placeholder="0" 
             class="w-full text-center text-5xl font-mono font-bold bg-transparent text-white placeholder-dark-muted/40 focus:outline-none tracking-tight"
             autofocus
           />
@@ -184,18 +188,18 @@
       <!-- Поле заметки -->
       <div class="glass-card rounded-2xl p-3 flex items-center gap-3">
         <i data-lucide="pencil-line" class="w-4 h-4 text-dark-muted ml-1"></i>
-        <input
-          type="text"
-          id="expense-note"
-          placeholder="Заметка к покупке (необязательно)"
+        <input 
+          type="text" 
+          id="expense-note" 
+          placeholder="Заметка к покупке (необязательно)" 
           class="w-full bg-transparent text-sm text-white placeholder-dark-muted focus:outline-none"
           maxlength="60"
         />
       </div>
 
       <!-- Кнопка добавления -->
-      <button
-        id="btn-add-expense"
+      <button 
+        id="btn-add-expense" 
         class="w-full py-4 rounded-full bg-lime-accent text-black font-extrabold text-base shadow-neon-lime hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
       >
         <i data-lucide="plus-circle" class="w-5 h-5 stroke-[2.5]"></i>
@@ -208,7 +212,7 @@
     <!-- ЭКРАН 2: АНАЛИТИКА И СТАТИСТИКА                      -->
     <!-- ---------------------------------------------------- -->
     <section id="screen-analytics" class="screen space-y-4 hidden">
-
+      
       <!-- Smart Insight Card -->
       <div class="relative rounded-3xl p-5 border border-[#3b5933] overflow-hidden bg-gradient-to-br from-[#1b3117] via-[#101d0e] to-[#0a1208] shadow-lg">
         <div class="absolute -right-8 -bottom-8 w-28 h-28 bg-lime-accent/15 rounded-full blur-2xl"></div>
@@ -227,9 +231,9 @@
         </div>
       </div>
 
-      <!-- Плашка со столбиками активности (7 дней недели с лимитом и пагинацией) -->
+      <!-- Плашка со столбиками активности (7 дней недели) -->
       <div class="glass-card rounded-3xl p-5 space-y-4">
-
+        
         <!-- Листалка недель -->
         <div class="flex items-center justify-between border-b border-dark-border/60 pb-3">
           <button id="prev-week-btn" class="p-1.5 rounded-full hover:bg-white/10 text-dark-muted hover:text-white transition-colors">
@@ -254,6 +258,23 @@
           <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-lime-accent"></span> &lt; 85%</span>
           <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> 85-100%</span>
           <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> Превышен</span>
+        </div>
+      </div>
+
+      <!-- СВОДКА ПО КАТЕГОРИЯМ ЗА ВЫБРАННЫЙ МЕСЯЦ -->
+      <div class="glass-card rounded-3xl p-5 space-y-3.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white">Распределение трат</h3>
+            <p class="text-[11px] text-dark-muted" id="analytics-categories-subtitle">По категориям за месяц</p>
+          </div>
+          <span class="text-xs font-mono font-bold text-lime-accent bg-lime-accent/10 px-2.5 py-1 rounded-full border border-lime-accent/20" id="analytics-categories-total">
+            0 ₽
+          </span>
+        </div>
+        
+        <div id="analytics-categories-list" class="space-y-3 pt-1">
+          <!-- Рендерится через JS -->
         </div>
       </div>
 
@@ -297,7 +318,7 @@
     <!-- ЭКРАН 3: НАСТРОЙКИ (ЛИМИТ И КАТЕГОРИИ)              -->
     <!-- ---------------------------------------------------- -->
     <section id="screen-settings" class="screen space-y-4 hidden">
-
+      
       <div>
         <h2 class="text-lg font-bold text-white">Настройки</h2>
         <p class="text-xs text-dark-muted">Управление бюджетом и категориями</p>
@@ -315,17 +336,17 @@
 
         <div class="flex items-center gap-3 pt-2">
           <div class="flex-1 glass-card rounded-2xl px-4 py-2.5 flex items-center justify-between border border-dark-border">
-            <input
-              type="number"
-              id="daily-limit-input"
-              inputmode="decimal"
+            <input 
+              type="number" 
+              id="daily-limit-input" 
+              inputmode="decimal" 
               class="w-full bg-transparent font-mono text-xl font-bold text-white focus:outline-none"
               placeholder="2000"
             />
             <span class="text-sm font-mono font-bold text-lime-accent">₽/день</span>
           </div>
-          <button
-            id="btn-save-limit"
+          <button 
+            id="btn-save-limit" 
             class="px-5 py-3 rounded-2xl bg-lime-accent text-black font-bold text-xs shadow-neon-pill active:scale-95 transition-all"
           >
             Сохранить
@@ -340,8 +361,8 @@
             <h3 class="text-sm font-bold text-white">Категории расходов</h3>
             <p class="text-xs text-dark-muted">Список активных категорий</p>
           </div>
-          <button
-            id="btn-open-category-modal"
+          <button 
+            id="btn-open-category-modal" 
             class="px-3.5 py-1.5 rounded-full bg-lime-accent text-black font-bold text-xs flex items-center gap-1 shadow-neon-pill active:scale-95 transition-all"
           >
             <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
@@ -360,7 +381,7 @@
 
   <!-- ==================== ПЛАВАЮЩАЯ НАВИГАЦИОННАЯ ПАНЕЛЬ ==================== -->
   <nav class="fixed bottom-4 inset-x-0 mx-auto w-[92%] max-w-sm glass-pill rounded-full p-1.5 flex items-center justify-between shadow-2xl z-40 border border-dark-border">
-
+    
     <!-- 1. Аналитика -->
     <button class="nav-tab flex-1 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-300 text-dark-muted hover:text-white" data-tab="analytics">
       <i data-lucide="pie-chart" class="w-5 h-5"></i>
@@ -385,7 +406,7 @@
   <!-- ==================== ОКНО: ВСЕ ОПЕРАЦИИ (ПОЛНАЯ ИСТОРИЯ) ==================== -->
   <div id="all-ops-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
     <div class="w-full max-w-md bg-[#0e170c] border-t border-dark-border rounded-t-[32px] p-6 space-y-4 max-h-[88vh] flex flex-col transform translate-y-full transition-transform duration-300" id="all-ops-modal-content">
-
+      
       <div class="flex items-center justify-between pb-1">
         <div>
           <h3 class="text-base font-bold text-white">Все операции</h3>
@@ -439,7 +460,7 @@
   <!-- ==================== BOTTOM SHEET: СОЗДАНИЕ КАТЕГОРИИ ==================== -->
   <div id="category-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
     <div class="w-full max-w-md bg-[#121e10] border-t border-dark-border rounded-t-[32px] p-6 space-y-4 transform translate-y-full transition-transform duration-300" id="category-modal-content">
-
+      
       <div class="flex items-center justify-between">
         <h3 class="text-base font-bold text-white">Новая категория</h3>
         <button id="btn-close-category-modal" class="p-1 rounded-full text-dark-muted hover:text-white">
@@ -459,7 +480,7 @@
           <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍻">🍻</button>
           <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍎">🍎</button>
           <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🛒">🛒</button>
-
+          
           <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🚕">🚕</button>
           <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🚗">🚗</button>
           <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="⛽">⛽</button>
@@ -494,10 +515,10 @@
         <label class="text-xs font-semibold text-dark-muted uppercase tracking-wider block mb-2">Название</label>
         <div class="glass-card rounded-2xl p-3 flex items-center gap-3">
           <span id="selected-emoji-preview" class="text-xl">🍔</span>
-          <input
-            type="text"
-            id="new-category-name"
-            placeholder="Например: Рестораны"
+          <input 
+            type="text" 
+            id="new-category-name" 
+            placeholder="Например: Рестораны" 
             class="w-full bg-transparent text-sm text-white placeholder-dark-muted focus:outline-none"
             maxlength="20"
           />
@@ -505,8 +526,8 @@
       </div>
 
       <!-- Кнопка сохранения -->
-      <button
-        id="btn-save-category"
+      <button 
+        id="btn-save-category" 
         class="w-full py-3.5 rounded-full bg-lime-accent text-black font-bold text-sm shadow-neon-lime hover:brightness-110 active:scale-[0.98] transition-all"
       >
         Создать категорию
@@ -520,7 +541,6 @@
     /* ----------------------------------------------------
      * 1. КОНФИГУРАЦИЯ API И TELEGRAM SDK
      * ---------------------------------------------------- */
-    // ВСТАВЬТЕ СЮДА ВАШ URL С RENDER.COM:
     const API_BASE_URL = 'https://money-tracker-6g39.onrender.com/api';
 
     const tg = window.Telegram?.WebApp;
@@ -666,7 +686,7 @@
 
     function switchTab(tabKey) {
       haptic('light');
-
+      
       document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
       const activeScreen = document.getElementById(`screen-${tabKey}`);
       if (activeScreen) activeScreen.classList.remove('hidden');
@@ -705,8 +725,8 @@
         const card = document.createElement('button');
         card.type = 'button';
         card.className = `p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 border ${
-          isSelected
-            ? 'border-lime-accent bg-lime-accent/15 shadow-neon-pill text-white'
+          isSelected 
+            ? 'border-lime-accent bg-lime-accent/15 shadow-neon-pill text-white' 
             : 'border-dark-border glass-card text-dark-muted hover:text-white'
         }`;
 
@@ -727,7 +747,7 @@
 
     function getWeekDates(offsetWeeks = 0) {
       const now = new Date();
-      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1; 
       const monday = new Date(now);
       monday.setDate(now.getDate() - dayOfWeek + (offsetWeeks * 7));
 
@@ -748,6 +768,58 @@
       return days;
     }
 
+    // Отрисовка сводки категорий за месяц
+    function renderCategoryBreakdown(monthExpenses, monthLabel) {
+      const container = document.getElementById('analytics-categories-list');
+      const totalBadge = document.getElementById('analytics-categories-total');
+      const subtitle = document.getElementById('analytics-categories-subtitle');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (subtitle) {
+        subtitle.innerText = `По категориям за ${monthLabel}`;
+      }
+
+      const totalMonthSum = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+      if (totalBadge) totalBadge.innerText = `${totalMonthSum.toLocaleString('ru-RU')} ₽`;
+
+      if (monthExpenses.length === 0) {
+        container.innerHTML = '<p class="text-xs text-dark-muted text-center py-3">Нет трат за этот месяц</p>';
+        return;
+      }
+
+      const catMap = {};
+      monthExpenses.forEach(e => {
+        catMap[e.categoryId] = (catMap[e.categoryId] || 0) + Number(e.amount);
+      });
+
+      const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+
+      sortedCats.forEach(([catId, amount]) => {
+        const cat = State.categories.find(c => c.id === catId) || { name: 'Прочее', emoji: '📦' };
+        const percent = totalMonthSum > 0 ? Math.round((amount / totalMonthSum) * 100) : 0;
+
+        const row = document.createElement('div');
+        row.className = 'space-y-1.5';
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-base">${cat.emoji}</span>
+              <span class="font-semibold text-white truncate max-w-[130px]">${cat.name}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-white font-bold">${amount.toLocaleString('ru-RU')} ₽</span>
+              <span class="text-dark-muted font-mono text-[11px] w-9 text-right">${percent}%</span>
+            </div>
+          </div>
+          <div class="w-full h-2 rounded-full bg-[#121c10] overflow-hidden p-0.5 border border-[#283C23]">
+            <div class="progress-bar-fill h-full rounded-full bg-gradient-to-r from-lime-glow to-lime-accent shadow-neon-pill" style="width: ${percent}%;"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
     function renderAnalytics() {
       const limitBadge = document.getElementById('chart-daily-limit-badge');
       if (limitBadge) limitBadge.innerText = `${State.dailyLimit.toLocaleString('ru-RU')} ₽`;
@@ -755,7 +827,7 @@
       const weekDays = getWeekDates(State.weekOffset);
       const firstDay = weekDays[0];
       const lastDay = weekDays[6];
-
+      
       const weekLabel = document.getElementById('current-week-label');
       if (weekLabel) {
         weekLabel.innerText = `${firstDay.dayNum} ${firstDay.monthShort} — ${lastDay.dayNum} ${lastDay.monthShort}`;
@@ -798,7 +870,7 @@
             </span>
             <div class="w-full max-w-[36px] h-28 rounded-full bg-[#121c10] border ${isOverLimit ? 'border-red-500/60' : 'border-dark-border'} p-1 flex flex-col justify-end overflow-hidden relative shadow-inner">
               ${fillHeight > 0 ? `
-                <div
+                <div 
                   class="capsule-fill w-full rounded-full bg-gradient-to-t ${colorClass}"
                   style="height: ${fillHeight}%;"
                 ></div>
@@ -813,6 +885,22 @@
         });
       }
 
+      // Определение месяца выбранной недели (по четвергу — стандарту ISO)
+      const middleWeekDay = weekDays[3].dateObj;
+      const targetYear = middleWeekDay.getFullYear();
+      const targetMonth = middleWeekDay.getMonth();
+      const monthNames = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+      const monthLabel = `${monthNames[targetMonth]} ${targetYear}`;
+
+      // Фильтрация трат за весь этот месяц
+      const monthExpenses = State.expenses.filter(e => {
+        const d = new Date(e.date);
+        return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+      });
+
+      renderCategoryBreakdown(monthExpenses, monthLabel);
+
+      // Секция Сегодня и Вчера
       const todayExpenses = State.expenses.filter(e => e.date === todayStr);
       const yesterdayExpenses = State.expenses.filter(e => e.date === yesterdayStr);
 
@@ -880,7 +968,7 @@
       const insightEl = document.getElementById('insight-text');
       if (!insightEl) return;
       const todaySum = State.expenses.filter(e => e.date === todayStr).reduce((s, e) => s + Number(e.amount), 0);
-
+      
       if (todaySum > State.dailyLimit) {
         const over = todaySum - State.dailyLimit;
         insightEl.innerHTML = `⚠️ Сегодня лимит превышен на <b>${over.toLocaleString('ru-RU')} ₽</b>. Рекомендуем снизить траты завтра.`;
@@ -963,8 +1051,8 @@
             const pill = document.createElement('button');
             pill.type = 'button';
             pill.className = `px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-              isSelected
-                ? 'bg-lime-accent text-black font-bold border-lime-accent shadow-neon-pill'
+              isSelected 
+                ? 'bg-lime-accent text-black font-bold border-lime-accent shadow-neon-pill' 
                 : 'glass-card border-dark-border text-dark-muted hover:text-white'
             }`;
             pill.innerText = `${dObj.getDate()} ${dObj.toLocaleDateString('ru-RU', { month: 'short' })}`;
@@ -1041,7 +1129,6 @@
       const dateEl = document.getElementById('header-date');
       if (dateEl) dateEl.innerText = new Date().toLocaleDateString('ru-RU', options);
 
-      // Загрузка данных с сервера Render
       const initData = await Api.init();
       State.categories = initData.categories || [];
       State.expenses = initData.expenses || [];
@@ -1052,12 +1139,10 @@
       renderCategoryGrid();
       lucide.createIcons();
 
-      // Навигационные вкладки
       document.querySelectorAll('.nav-tab').forEach(tabBtn => {
         tabBtn.addEventListener('click', () => switchTab(tabBtn.dataset.tab));
       });
 
-      // Переключение дат: Сегодня / Вчера
       document.querySelectorAll('.date-pill').forEach(btn => {
         btn.addEventListener('click', () => {
           haptic('light');
@@ -1084,7 +1169,6 @@
         });
       }
 
-      // Сохранение расхода
       const addExpBtn = document.getElementById('btn-add-expense');
       if (addExpBtn) {
         addExpBtn.addEventListener('click', async () => {
@@ -1122,7 +1206,6 @@
         });
       }
 
-      // Перелистывание недель
       document.getElementById('prev-week-btn')?.addEventListener('click', () => {
         haptic('light');
         State.weekOffset -= 1;
@@ -1135,7 +1218,6 @@
         renderAnalytics();
       });
 
-      // Сохранение лимита
       document.getElementById('btn-save-limit')?.addEventListener('click', async () => {
         const input = document.getElementById('daily-limit-input');
         const val = parseFloat(input.value);
@@ -1149,7 +1231,6 @@
         }
       });
 
-      // Модалка: Все операции
       const allOpsModal = document.getElementById('all-ops-modal');
       const allOpsContent = document.getElementById('all-ops-modal-content');
 
@@ -1196,7 +1277,6 @@
         renderAllOperationsModal();
       });
 
-      // Модалка: Новая категория
       const catModal = document.getElementById('category-modal');
       const catModalContent = document.getElementById('category-modal-content');
 
