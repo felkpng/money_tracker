@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Трекер Расходов | TMA</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind Custom Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            lime: {
+              accent: '#C4F82A',
+              glow: '#A3E635',
+              dark: '#182b13',
+              card: '#142311',
+            },
+            dark: {
+              bg: '#080C07',
+              surface: 'rgba(22, 33, 20, 0.65)',
+              border: '#283C23',
+              muted: '#8E9E8C'
+            }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          boxShadow: {
+            'neon-lime': '0 0 20px rgba(196, 248, 42, 0.35)',
+            'neon-pill': '0 0 12px rgba(196, 248, 42, 0.45)',
+            'neon-yellow': '0 0 12px rgba(250, 204, 21, 0.45)',
+            'neon-red': '0 0 12px rgba(239, 68, 68, 0.45)',
+            'inner-glow': 'inset 0 0 12px rgba(196, 248, 42, 0.15)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: linear-gradient(180deg, #132210 0%, #080C07 50%, #000000 100%);
+      min-height: 100vh;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .glass-card {
+      background: rgba(22, 33, 20, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid #283C23;
+    }
+
+    .glass-pill {
+      background: rgba(20, 31, 18, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(40, 60, 35, 0.8);
+    }
+
+    .screen {
+      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .capsule-fill {
+      transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-white antialiased overflow-x-hidden">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="px-5 pt-4 pb-2 flex items-center justify-between z-10">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full border border-dark-border overflow-hidden bg-[#1a2d16] flex items-center justify-center text-lime-accent font-bold" id="user-avatar">
+        ⚡
+      </div>
+      <div>
+        <p class="text-[11px] text-dark-muted font-medium" id="header-date">Загрузка...</p>
+        <h1 class="text-sm font-bold text-white flex items-center gap-1.5" id="user-greeting">
+          Личный Бюджет <span class="inline-block w-2 h-2 rounded-full bg-lime-accent shadow-neon-pill"></span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- Мини плашка: Траты месяца -->
+    <div class="px-3.5 py-1.5 rounded-2xl glass-card flex flex-col items-end border border-dark-border shadow-sm">
+      <span class="text-[10px] uppercase font-bold tracking-wider text-dark-muted">Траты месяца</span>
+      <span class="text-xs font-mono font-extrabold text-lime-accent" id="header-month-spent">0 ₽</span>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <main class="flex-1 px-4 pt-2 pb-28 max-w-md mx-auto w-full">
+
+    <!-- ---------------------------------------------------- -->
+    <!-- ЭКРАН 1: ВВОД РАСХОДА (ПО ЦЕНТРУ В МЕНЮ)              -->
+    <!-- ---------------------------------------------------- -->
+    <section id="screen-input" class="screen space-y-4">
+
+      <!-- Ввод суммы -->
+      <div class="glass-card rounded-3xl p-6 text-center relative overflow-hidden shadow-lg">
+        <div class="absolute -top-12 -left-12 w-32 h-32 bg-lime-accent/10 rounded-full blur-2xl pointer-events-none"></div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-dark-muted mb-1">Сумма расхода</p>
+
+        <div class="flex items-center justify-center gap-2">
+          <input
+            type="number"
+            id="expense-amount"
+            inputmode="decimal"
+            placeholder="0"
+            class="w-full text-center text-5xl font-mono font-bold bg-transparent text-white placeholder-dark-muted/40 focus:outline-none tracking-tight"
+            autofocus
+          />
+          <span class="text-4xl font-mono font-bold text-lime-accent">₽</span>
+        </div>
+      </div>
+
+      <!-- Быстрый выбор даты -->
+      <div class="flex items-center gap-2">
+        <button type="button" class="date-pill flex-1 py-2 rounded-full text-xs font-semibold border transition-all glass-pill text-lime-accent border-lime-accent shadow-neon-pill" data-date="today">
+          Сегодня
+        </button>
+        <button type="button" class="date-pill flex-1 py-2 rounded-full text-xs font-semibold border border-dark-border glass-pill text-dark-muted transition-all hover:text-white" data-date="yesterday">
+          Вчера
+        </button>
+        <label class="date-pill-custom px-4 py-2 rounded-full text-xs font-semibold border border-dark-border glass-pill text-dark-muted flex items-center justify-center cursor-pointer transition-all hover:text-white relative">
+          <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+          <input type="date" id="custom-date-picker" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer pointer-events-auto" />
+        </label>
+      </div>
+
+      <!-- Сетка категорий -->
+      <div>
+        <div class="flex items-center justify-between mb-2.5 px-1">
+          <span class="text-xs font-semibold uppercase tracking-wider text-dark-muted">Категория</span>
+          <span class="text-xs text-lime-accent cursor-pointer" onclick="switchTab('settings')">Настроить ›</span>
+        </div>
+        <div id="categories-grid" class="grid grid-cols-4 gap-2.5">
+          <!-- Рендерится через JS -->
+        </div>
+      </div>
+
+      <!-- Поле заметки -->
+      <div class="glass-card rounded-2xl p-3 flex items-center gap-3">
+        <i data-lucide="pencil-line" class="w-4 h-4 text-dark-muted ml-1"></i>
+        <input
+          type="text"
+          id="expense-note"
+          placeholder="Заметка к покупке (необязательно)"
+          class="w-full bg-transparent text-sm text-white placeholder-dark-muted focus:outline-none"
+          maxlength="60"
+        />
+      </div>
+
+      <!-- Кнопка добавления -->
+      <button
+        id="btn-add-expense"
+        class="w-full py-4 rounded-full bg-lime-accent text-black font-extrabold text-base shadow-neon-lime hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
+      >
+        <i data-lucide="plus-circle" class="w-5 h-5 stroke-[2.5]"></i>
+        <span>Добавить расход</span>
+      </button>
+
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- ЭКРАН 2: АНАЛИТИКА И СТАТИСТИКА                      -->
+    <!-- ---------------------------------------------------- -->
+    <section id="screen-analytics" class="screen space-y-4 hidden">
+
+      <!-- Smart Insight Card -->
+      <div class="relative rounded-3xl p-5 border border-[#3b5933] overflow-hidden bg-gradient-to-br from-[#1b3117] via-[#101d0e] to-[#0a1208] shadow-lg">
+        <div class="absolute -right-8 -bottom-8 w-28 h-28 bg-lime-accent/15 rounded-full blur-2xl"></div>
+        <div class="flex items-start justify-between">
+          <div class="space-y-1 max-w-[82%]">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-lime-accent/20 text-lime-accent text-[11px] font-bold border border-lime-accent/30">
+              <i data-lucide="zap" class="w-3 h-3"></i> Умный Инсайт
+            </span>
+            <p id="insight-text" class="text-sm font-semibold text-white/95 leading-snug pt-1">
+              💡 Анализ данных рассчитывается...
+            </p>
+          </div>
+          <div class="w-9 h-9 rounded-full bg-lime-accent/20 border border-lime-accent/40 flex items-center justify-center text-lime-accent">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Плашка со столбиками активности (7 дней недели с лимитом и пагинацией) -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+
+        <!-- Листалка недель -->
+        <div class="flex items-center justify-between border-b border-dark-border/60 pb-3">
+          <button id="prev-week-btn" class="p-1.5 rounded-full hover:bg-white/10 text-dark-muted hover:text-white transition-colors">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+          </button>
+          <div class="text-center">
+            <p id="current-week-label" class="text-xs font-bold text-white uppercase tracking-wider">Неделя</p>
+            <p class="text-[11px] text-dark-muted">Лимит: <span id="chart-daily-limit-badge" class="font-mono text-lime-accent">2 000 ₽</span>/день</p>
+          </div>
+          <button id="next-week-btn" class="p-1.5 rounded-full hover:bg-white/10 text-dark-muted hover:text-white transition-colors">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- 7 Столбиков-капсул -->
+        <div id="weekly-capsules-grid" class="grid grid-cols-7 gap-1.5 pt-2 items-end min-h-[190px]">
+          <!-- Рендерится через JS -->
+        </div>
+
+        <!-- Легенда статусов нормы -->
+        <div class="flex items-center justify-between text-[10px] text-dark-muted pt-2 border-t border-dark-border/40 px-1">
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-lime-accent"></span> &lt; 85%</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> 85-100%</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> Превышен</span>
+        </div>
+      </div>
+
+      <!-- Последние операции: Сегодня / Вчера -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-white">Последние операции</h3>
+          <button id="btn-open-all-ops" class="text-xs text-lime-accent font-bold hover:underline flex items-center gap-0.5">
+            Подробнее <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <!-- Секция: Сегодня -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-dark-muted px-2 py-0.5 rounded-md bg-white/5 border border-dark-border">Сегодня</span>
+              <span class="text-xs font-mono font-bold text-white" id="today-total-spent">0 ₽</span>
+            </div>
+            <div id="today-transactions-list" class="space-y-2">
+              <!-- Рендер операций за сегодня -->
+            </div>
+          </div>
+
+          <!-- Секция: Вчера -->
+          <div class="pt-2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-dark-muted px-2 py-0.5 rounded-md bg-white/5 border border-dark-border">Вчера</span>
+              <span class="text-xs font-mono font-bold text-white" id="yesterday-total-spent">0 ₽</span>
+            </div>
+            <div id="yesterday-transactions-list" class="space-y-2">
+              <!-- Рендер операций за вчера -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- ЭКРАН 3: НАСТРОЙКИ (ЛИМИТ И КАТЕГОРИИ)              -->
+    <!-- ---------------------------------------------------- -->
+    <section id="screen-settings" class="screen space-y-4 hidden">
+
+      <div>
+        <h2 class="text-lg font-bold text-white">Настройки</h2>
+        <p class="text-xs text-dark-muted">Управление бюджетом и категориями</p>
+      </div>
+
+      <!-- Настройка дневного лимита -->
+      <div class="glass-card rounded-3xl p-5 space-y-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="target" class="w-5 h-5 text-lime-accent"></i>
+          <div>
+            <h3 class="text-sm font-bold text-white">Норма трат на день</h3>
+            <p class="text-xs text-dark-muted">Целевой лимит для графика активности</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <div class="flex-1 glass-card rounded-2xl px-4 py-2.5 flex items-center justify-between border border-dark-border">
+            <input
+              type="number"
+              id="daily-limit-input"
+              inputmode="decimal"
+              class="w-full bg-transparent font-mono text-xl font-bold text-white focus:outline-none"
+              placeholder="2000"
+            />
+            <span class="text-sm font-mono font-bold text-lime-accent">₽/день</span>
+          </div>
+          <button
+            id="btn-save-limit"
+            class="px-5 py-3 rounded-2xl bg-lime-accent text-black font-bold text-xs shadow-neon-pill active:scale-95 transition-all"
+          >
+            Сохранить
+          </button>
+        </div>
+      </div>
+
+      <!-- Управление категориями -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white">Категории расходов</h3>
+            <p class="text-xs text-dark-muted">Список активных категорий</p>
+          </div>
+          <button
+            id="btn-open-category-modal"
+            class="px-3.5 py-1.5 rounded-full bg-lime-accent text-black font-bold text-xs flex items-center gap-1 shadow-neon-pill active:scale-95 transition-all"
+          >
+            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
+            <span>Создать</span>
+          </button>
+        </div>
+
+        <div id="categories-manage-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+          <!-- Рендер категорий в настройках -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== ПЛАВАЮЩАЯ НАВИГАЦИОННАЯ ПАНЕЛЬ ==================== -->
+  <nav class="fixed bottom-4 inset-x-0 mx-auto w-[92%] max-w-sm glass-pill rounded-full p-1.5 flex items-center justify-between shadow-2xl z-40 border border-dark-border">
+
+    <!-- 1. Аналитика -->
+    <button class="nav-tab flex-1 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-300 text-dark-muted hover:text-white" data-tab="analytics">
+      <i data-lucide="pie-chart" class="w-5 h-5"></i>
+      <span class="text-[10px] tracking-tight font-semibold">Аналитика</span>
+    </button>
+
+    <!-- 2. Ввод (По центру, крупнее) -->
+    <div class="flex-shrink-0 px-2">
+      <button class="nav-tab w-14 h-14 rounded-full flex flex-col items-center justify-center bg-lime-accent text-black shadow-neon-lime font-bold active:scale-90 transition-all -translate-y-1" data-tab="input">
+        <i data-lucide="plus" class="w-7 h-7 stroke-[2.8]"></i>
+      </button>
+    </div>
+
+    <!-- 3. Настройки -->
+    <button class="nav-tab flex-1 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-300 text-dark-muted hover:text-white" data-tab="settings">
+      <i data-lucide="settings" class="w-5 h-5"></i>
+      <span class="text-[10px] tracking-tight font-semibold">Настройки</span>
+    </button>
+
+  </nav>
+
+  <!-- ==================== ОКНО: ВСЕ ОПЕРАЦИИ (ПОЛНАЯ ИСТОРИЯ) ==================== -->
+  <div id="all-ops-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="w-full max-w-md bg-[#0e170c] border-t border-dark-border rounded-t-[32px] p-6 space-y-4 max-h-[88vh] flex flex-col transform translate-y-full transition-transform duration-300" id="all-ops-modal-content">
+
+      <div class="flex items-center justify-between pb-1">
+        <div>
+          <h3 class="text-base font-bold text-white">Все операции</h3>
+          <p class="text-xs text-dark-muted">Фильтр по периодам и дням</p>
+        </div>
+        <button id="btn-close-all-ops" class="p-1 rounded-full text-dark-muted hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Селектор периода -->
+      <div class="flex items-center gap-1.5 p-1 glass-card rounded-2xl">
+        <button class="period-pill flex-1 py-1.5 rounded-xl text-xs font-semibold text-center transition-all bg-lime-accent text-black font-bold shadow-neon-pill" data-period="current-month">
+          Тек. месяц
+        </button>
+        <button class="period-pill flex-1 py-1.5 rounded-xl text-xs font-semibold text-center text-dark-muted hover:text-white transition-all" data-period="prev-month">
+          Прошлый
+        </button>
+        <button class="period-pill flex-1 py-1.5 rounded-xl text-xs font-semibold text-center text-dark-muted hover:text-white transition-all" data-period="all">
+          За всё время
+        </button>
+      </div>
+
+      <!-- Горизонтальная лента дней периода -->
+      <div>
+        <span class="text-[10px] font-bold text-dark-muted uppercase tracking-wider block mb-1.5">Выберите день:</span>
+        <div id="period-days-pills" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <!-- Рендерится через JS -->
+        </div>
+      </div>
+
+      <!-- Плашка суммы за выбранный день/период -->
+      <div class="glass-card rounded-2xl p-3 flex items-center justify-between border border-dark-border bg-lime-accent/5">
+        <div>
+          <p class="text-[11px] text-dark-muted" id="selected-day-label">Сумма за выбранный день:</p>
+          <p class="text-lg font-mono font-bold text-white" id="selected-day-total">0 ₽</p>
+        </div>
+        <button id="btn-reset-day-filter" class="text-xs text-lime-accent font-bold hidden hover:underline">
+          Показать все дни
+        </button>
+      </div>
+
+      <!-- Список отфильтрованных операций -->
+      <div id="all-ops-transactions-list" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[180px]">
+        <!-- Рендер операций -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== BOTTOM SHEET: СОЗДАНИЕ КАТЕГОРИИ ==================== -->
+  <div id="category-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="w-full max-w-md bg-[#121e10] border-t border-dark-border rounded-t-[32px] p-6 space-y-4 transform translate-y-full transition-transform duration-300" id="category-modal-content">
+
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">Новая категория</h3>
+        <button id="btn-close-category-modal" class="p-1 rounded-full text-dark-muted hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Выбор эмодзи -->
+      <div>
+        <label class="text-xs font-semibold text-dark-muted uppercase tracking-wider block mb-2">Выберите иконку</label>
+        <div id="emoji-picker" class="grid grid-cols-8 gap-2 max-h-36 overflow-y-auto pr-1">
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍔">🍔</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍕">🍕</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍣">🍣</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="☕">☕</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🥐">🥐</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍻">🍻</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🍎">🍎</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🛒">🛒</button>
+
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🚕">🚕</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🚗">🚗</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="⛽">⛽</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🚇">🚇</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="✈️">✈️</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🏨">🏨</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🎟️">🎟️</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🏖️">🏖️</button>
+
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🏠">🏠</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="💡">💡</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="📱">📱</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="💻">💻</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🎮">🎮</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🎧">🎧</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🎬">🎬</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="📦">📦</button>
+
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🛍️">🛍️</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="👕">👕</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="👟">👟</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="💊">💊</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🏋️">🏋️</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="⚽">⚽</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🎁">🎁</button>
+          <button type="button" class="emoji-btn h-9 rounded-xl bg-white/5 border border-dark-border text-base flex items-center justify-center hover:bg-lime-accent/20 active:scale-90" data-emoji="🐾">🐾</button>
+        </div>
+      </div>
+
+      <!-- Ввод названия -->
+      <div>
+        <label class="text-xs font-semibold text-dark-muted uppercase tracking-wider block mb-2">Название</label>
+        <div class="glass-card rounded-2xl p-3 flex items-center gap-3">
+          <span id="selected-emoji-preview" class="text-xl">🍔</span>
+          <input
+            type="text"
+            id="new-category-name"
+            placeholder="Например: Рестораны"
+            class="w-full bg-transparent text-sm text-white placeholder-dark-muted focus:outline-none"
+            maxlength="20"
+          />
+        </div>
+      </div>
+
+      <!-- Кнопка сохранения -->
+      <button
+        id="btn-save-category"
+        class="w-full py-3.5 rounded-full bg-lime-accent text-black font-bold text-sm shadow-neon-lime hover:brightness-110 active:scale-[0.98] transition-all"
+      >
+        Создать категорию
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT ЛОГИКА ==================== -->
+  <script>
+    /* ----------------------------------------------------
+     * 1. КОНФИГУРАЦИЯ API И TELEGRAM SDK
+     * ---------------------------------------------------- */
+    // ВСТАВЬТЕ СЮДА ВАШ URL С RENDER.COM:
+    const API_BASE_URL = 'https://temp.onrender.com/api';
+
+    const tg = window.Telegram?.WebApp;
+    const isTelegram = Boolean(tg && tg.initData);
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try { tg.enableClosingConfirmation(); } catch (e) {}
+    }
+
+    function haptic(type = 'light') {
+      if (!tg?.HapticFeedback) return;
+      if (type === 'success' || type === 'error' || type === 'warning') {
+        tg.HapticFeedback.notificationOccurred(type);
+      } else {
+        tg.HapticFeedback.impactOccurred(type);
+      }
+    }
+
+    function getFormattedDate(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    const todayStr = getFormattedDate(new Date());
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = getFormattedDate(yesterdayDate);
+
+    /* ----------------------------------------------------
+     * 2. API КЛИЕНТ
+     * ---------------------------------------------------- */
+    const Api = {
+      getHeaders() {
+        return {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tg?.initData || ''}`
+        };
+      },
+      async init() {
+        try {
+          const res = await fetch(`${API_BASE_URL}/init`, { headers: this.getHeaders() });
+          if (!res.ok) throw new Error('API Error');
+          return await res.json();
+        } catch (e) {
+          console.warn('Сервер недоступен, режим fallback:', e);
+          return {
+            dailyLimit: 2000,
+            categories: [
+              { id: '1', name: 'Еда', emoji: '🍔' },
+              { id: '2', name: 'Такси', emoji: '🚕' },
+              { id: '3', name: 'Покупки', emoji: '🛒' },
+              { id: '4', name: 'Жилье', emoji: '🏠' },
+              { id: '5', name: 'Игры', emoji: '🎮' },
+              { id: '6', name: 'Здоровье', emoji: '💊' },
+              { id: '7', name: 'Кофе', emoji: '☕' },
+              { id: '8', name: 'Прочее', emoji: '📦' }
+            ],
+            expenses: []
+          };
+        }
+      },
+      async addExpense(exp) {
+        try {
+          await fetch(`${API_BASE_URL}/expenses`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(exp)
+          });
+        } catch (e) { console.error('Ошибка добавления расхода:', e); }
+      },
+      async deleteExpense(id) {
+        try {
+          await fetch(`${API_BASE_URL}/expenses/${id}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+          });
+        } catch (e) { console.error('Ошибка удаления расхода:', e); }
+      },
+      async addCategory(cat) {
+        try {
+          await fetch(`${API_BASE_URL}/categories`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(cat)
+          });
+        } catch (e) { console.error('Ошибка создания категории:', e); }
+      },
+      async deleteCategory(id) {
+        try {
+          await fetch(`${API_BASE_URL}/categories/${id}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+          });
+        } catch (e) { console.error('Ошибка удаления категории:', e); }
+      },
+      async updateLimit(limit) {
+        try {
+          await fetch(`${API_BASE_URL}/settings/limit`, {
+            method: 'PATCH',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ dailyLimit: limit })
+          });
+        } catch (e) { console.error('Ошибка обновления нормы:', e); }
+      }
+    };
+
+    /* ----------------------------------------------------
+     * 3. СОСТОЯНИЕ (STATE)
+     * ---------------------------------------------------- */
+    const State = {
+      categories: [],
+      expenses: [],
+      dailyLimit: 2000,
+      selectedCategoryId: null,
+      selectedDate: todayStr,
+      weekOffset: 0,
+      selectedModalEmoji: '🍔',
+      allOpsFilter: {
+        period: 'current-month',
+        selectedDay: null
+      }
+    };
+
+    function updateHeaderMonthTotal() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      const monthSum = State.expenses
+        .filter(exp => {
+          const d = new Date(exp.date);
+          return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        })
+        .reduce((sum, e) => sum + Number(e.amount), 0);
+
+      const el = document.getElementById('header-month-spent');
+      if (el) el.innerText = `${monthSum.toLocaleString('ru-RU')} ₽`;
+    }
+
+    function switchTab(tabKey) {
+      haptic('light');
+
+      document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+      const activeScreen = document.getElementById(`screen-${tabKey}`);
+      if (activeScreen) activeScreen.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        const isCurrent = btn.dataset.tab === tabKey;
+        if (btn.dataset.tab === 'input') {
+          if (isCurrent) {
+            btn.className = 'nav-tab w-14 h-14 rounded-full flex flex-col items-center justify-center bg-lime-accent text-black shadow-neon-lime font-bold active:scale-90 transition-all -translate-y-1 ring-4 ring-lime-accent/20';
+          } else {
+            btn.className = 'nav-tab w-14 h-14 rounded-full flex flex-col items-center justify-center bg-lime-accent/80 text-black shadow-neon-lime font-bold active:scale-90 transition-all -translate-y-1';
+          }
+        } else {
+          if (isCurrent) {
+            btn.className = 'nav-tab flex-1 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-300 text-lime-accent font-bold';
+          } else {
+            btn.className = 'nav-tab flex-1 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-all duration-300 text-dark-muted hover:text-white';
+          }
+        }
+      });
+
+      if (tabKey === 'analytics') renderAnalytics();
+      if (tabKey === 'settings') renderSettings();
+      if (tabKey === 'input') renderCategoryGrid();
+
+      lucide.createIcons();
+    }
+
+    function renderCategoryGrid() {
+      const container = document.getElementById('categories-grid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      State.categories.forEach(cat => {
+        const isSelected = State.selectedCategoryId === cat.id;
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 border ${
+          isSelected
+            ? 'border-lime-accent bg-lime-accent/15 shadow-neon-pill text-white'
+            : 'border-dark-border glass-card text-dark-muted hover:text-white'
+        }`;
+
+        card.innerHTML = `
+          <span class="text-2xl">${cat.emoji}</span>
+          <span class="text-[11px] font-semibold truncate w-full text-center">${cat.name}</span>
+        `;
+
+        card.onclick = () => {
+          haptic('light');
+          State.selectedCategoryId = cat.id;
+          renderCategoryGrid();
+        };
+
+        container.appendChild(card);
+      });
+    }
+
+    function getWeekDates(offsetWeeks = 0) {
+      const now = new Date();
+      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - dayOfWeek + (offsetWeeks * 7));
+
+      const days = [];
+      const weekdaysShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        days.push({
+          dateObj: d,
+          dateStr: getFormattedDate(d),
+          dayNum: d.getDate(),
+          weekday: weekdaysShort[i],
+          monthShort: d.toLocaleDateString('ru-RU', { month: 'short' })
+        });
+      }
+      return days;
+    }
+
+    function renderAnalytics() {
+      const limitBadge = document.getElementById('chart-daily-limit-badge');
+      if (limitBadge) limitBadge.innerText = `${State.dailyLimit.toLocaleString('ru-RU')} ₽`;
+
+      const weekDays = getWeekDates(State.weekOffset);
+      const firstDay = weekDays[0];
+      const lastDay = weekDays[6];
+
+      const weekLabel = document.getElementById('current-week-label');
+      if (weekLabel) {
+        weekLabel.innerText = `${firstDay.dayNum} ${firstDay.monthShort} — ${lastDay.dayNum} ${lastDay.monthShort}`;
+      }
+
+      const capsulesGrid = document.getElementById('weekly-capsules-grid');
+      if (capsulesGrid) {
+        capsulesGrid.innerHTML = '';
+
+        weekDays.forEach(day => {
+          const daySum = State.expenses
+            .filter(e => e.date === day.dateStr)
+            .reduce((sum, e) => sum + Number(e.amount), 0);
+
+          const limit = State.dailyLimit > 0 ? State.dailyLimit : 2000;
+          const ratio = daySum / limit;
+          const percentage = Math.min(Math.round(ratio * 100), 100);
+          const fillHeight = daySum > 0 ? Math.max(percentage, 14) : 0;
+
+          let colorClass = 'from-lime-glow to-lime-accent shadow-neon-pill';
+          let badgeClass = 'text-dark-muted';
+          let isOverLimit = false;
+
+          if (ratio > 1.0) {
+            colorClass = 'from-red-600 to-red-500 shadow-neon-red';
+            badgeClass = 'text-red-400 font-bold';
+            isOverLimit = true;
+          } else if (ratio >= 0.85) {
+            colorClass = 'from-amber-500 to-amber-400 shadow-neon-yellow';
+            badgeClass = 'text-amber-300 font-bold';
+          }
+
+          const isToday = day.dateStr === todayStr;
+
+          const col = document.createElement('div');
+          col.className = 'flex flex-col items-center gap-1.5 h-full justify-end';
+          col.innerHTML = `
+            <span class="text-[9px] font-mono leading-none ${daySum > 0 ? badgeClass : 'text-transparent'} truncate w-full text-center">
+              ${daySum > 0 ? (daySum >= 1000 ? (daySum/1000).toFixed(1) + 'k' : daySum) : '0'}
+            </span>
+            <div class="w-full max-w-[36px] h-28 rounded-full bg-[#121c10] border ${isOverLimit ? 'border-red-500/60' : 'border-dark-border'} p-1 flex flex-col justify-end overflow-hidden relative shadow-inner">
+              ${fillHeight > 0 ? `
+                <div
+                  class="capsule-fill w-full rounded-full bg-gradient-to-t ${colorClass}"
+                  style="height: ${fillHeight}%;"
+                ></div>
+              ` : ''}
+            </div>
+            <div class="text-center leading-tight">
+              <span class="text-[10px] block font-semibold ${isToday ? 'text-lime-accent' : 'text-dark-muted'}">${day.weekday}</span>
+              <span class="text-[9px] block font-mono ${isToday ? 'text-white font-bold' : 'text-dark-muted/70'}">${day.dayNum}</span>
+            </div>
+          `;
+          capsulesGrid.appendChild(col);
+        });
+      }
+
+      const todayExpenses = State.expenses.filter(e => e.date === todayStr);
+      const yesterdayExpenses = State.expenses.filter(e => e.date === yesterdayStr);
+
+      const todayTotalEl = document.getElementById('today-total-spent');
+      if (todayTotalEl) {
+        todayTotalEl.innerText = `${todayExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString('ru-RU')} ₽`;
+      }
+
+      const yesterdayTotalEl = document.getElementById('yesterday-total-spent');
+      if (yesterdayTotalEl) {
+        yesterdayTotalEl.innerText = `${yesterdayExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString('ru-RU')} ₽`;
+      }
+
+      renderDayTransactions('today-transactions-list', todayExpenses, 'Сегодня трат не было 🎉');
+      renderDayTransactions('yesterday-transactions-list', yesterdayExpenses, 'Вчера трат не было');
+      generateSmartInsight();
+    }
+
+    function renderDayTransactions(containerId, list, emptyText) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `<p class="text-xs text-dark-muted/60 py-1 italic px-2">${emptyText}</p>`;
+        return;
+      }
+
+      list.forEach(exp => {
+        const cat = State.categories.find(c => c.id === exp.categoryId) || { name: 'Расход', emoji: '💸' };
+        const row = document.createElement('div');
+        row.className = 'p-2.5 rounded-2xl bg-white/5 border border-dark-border/50 flex items-center justify-between';
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl p-1.5 rounded-xl bg-white/5 border border-dark-border">${cat.emoji}</span>
+            <div>
+              <p class="text-xs font-bold text-white">${cat.name}</p>
+              ${exp.note ? `<p class="text-[10px] text-dark-muted truncate max-w-[130px]">${exp.note}</p>` : ''}
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-bold text-white">- ${Number(exp.amount).toLocaleString('ru-RU')} ₽</span>
+            <button class="p-1 text-dark-muted hover:text-red-400" onclick="deleteExpenseItem('${exp.id}')">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+      lucide.createIcons();
+    }
+
+    async function deleteExpenseItem(id) {
+      haptic('warning');
+      State.expenses = State.expenses.filter(e => e.id !== id);
+      await Api.deleteExpense(id);
+      updateHeaderMonthTotal();
+      renderAnalytics();
+      if (!document.getElementById('all-ops-modal')?.classList.contains('hidden')) {
+        renderAllOperationsModal();
+      }
+    }
+
+    function generateSmartInsight() {
+      const insightEl = document.getElementById('insight-text');
+      if (!insightEl) return;
+      const todaySum = State.expenses.filter(e => e.date === todayStr).reduce((s, e) => s + Number(e.amount), 0);
+
+      if (todaySum > State.dailyLimit) {
+        const over = todaySum - State.dailyLimit;
+        insightEl.innerHTML = `⚠️ Сегодня лимит превышен на <b>${over.toLocaleString('ru-RU')} ₽</b>. Рекомендуем снизить траты завтра.`;
+      } else if (todaySum > 0) {
+        const left = State.dailyLimit - todaySum;
+        insightEl.innerHTML = `✨ Отличный темп! До дневного лимита осталось <b>${left.toLocaleString('ru-RU')} ₽</b>.`;
+      } else {
+        insightEl.innerHTML = `💡 Сегодня еще не было трат. Дневная норма: <b>${State.dailyLimit.toLocaleString('ru-RU')} ₽</b>.`;
+      }
+    }
+
+    function renderSettings() {
+      const limitInput = document.getElementById('daily-limit-input');
+      if (limitInput) limitInput.value = State.dailyLimit;
+
+      const container = document.getElementById('categories-manage-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      State.categories.forEach(cat => {
+        const item = document.createElement('div');
+        item.className = 'glass-card rounded-2xl p-3 flex items-center justify-between';
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-2xl p-2 rounded-xl bg-white/5 border border-dark-border">${cat.emoji}</span>
+            <span class="text-sm font-semibold text-white">${cat.name}</span>
+          </div>
+          <button class="p-2 text-dark-muted hover:text-red-400 transition-colors btn-del-cat" data-id="${cat.id}">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        `;
+
+        item.querySelector('.btn-del-cat').onclick = async () => {
+          haptic('warning');
+          if (confirm(`Удалить категорию «${cat.name}»?`)) {
+            State.categories = State.categories.filter(c => c.id !== cat.id);
+            if (State.selectedCategoryId === cat.id) {
+              State.selectedCategoryId = State.categories[0]?.id || null;
+            }
+            await Api.deleteCategory(cat.id);
+            renderSettings();
+            renderCategoryGrid();
+          }
+        };
+
+        container.appendChild(item);
+      });
+
+      lucide.createIcons();
+    }
+
+    function renderAllOperationsModal() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      let periodExpenses = State.expenses.filter(exp => {
+        const d = new Date(exp.date);
+        if (State.allOpsFilter.period === 'current-month') {
+          return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        } else if (State.allOpsFilter.period === 'prev-month') {
+          const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
+        }
+        return true;
+      });
+
+      const availableDates = [...new Set(periodExpenses.map(e => e.date))].sort().reverse();
+      const daysPillsContainer = document.getElementById('period-days-pills');
+      if (daysPillsContainer) {
+        daysPillsContainer.innerHTML = '';
+
+        if (availableDates.length === 0) {
+          daysPillsContainer.innerHTML = '<span class="text-xs text-dark-muted">Нет записей за этот период</span>';
+        } else {
+          availableDates.forEach(dStr => {
+            const isSelected = State.allOpsFilter.selectedDay === dStr;
+            const dObj = new Date(dStr);
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = `px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+              isSelected
+                ? 'bg-lime-accent text-black font-bold border-lime-accent shadow-neon-pill'
+                : 'glass-card border-dark-border text-dark-muted hover:text-white'
+            }`;
+            pill.innerText = `${dObj.getDate()} ${dObj.toLocaleDateString('ru-RU', { month: 'short' })}`;
+
+            pill.onclick = () => {
+              haptic('light');
+              State.allOpsFilter.selectedDay = isSelected ? null : dStr;
+              renderAllOperationsModal();
+            };
+
+            daysPillsContainer.appendChild(pill);
+          });
+        }
+      }
+
+      let finalExpenses = periodExpenses;
+      const resetBtn = document.getElementById('btn-reset-day-filter');
+      const labelEl = document.getElementById('selected-day-label');
+      const totalEl = document.getElementById('selected-day-total');
+
+      if (State.allOpsFilter.selectedDay) {
+        finalExpenses = periodExpenses.filter(e => e.date === State.allOpsFilter.selectedDay);
+        const dObj = new Date(State.allOpsFilter.selectedDay);
+        if (labelEl) labelEl.innerText = `Траты за ${dObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}:`;
+        if (resetBtn) resetBtn.classList.remove('hidden');
+      } else {
+        if (labelEl) labelEl.innerText = 'Сумма за выбранный период:';
+        if (resetBtn) resetBtn.classList.add('hidden');
+      }
+
+      const totalSum = finalExpenses.reduce((s, e) => s + Number(e.amount), 0);
+      if (totalEl) totalEl.innerText = `${totalSum.toLocaleString('ru-RU')} ₽`;
+
+      const listContainer = document.getElementById('all-ops-transactions-list');
+      if (listContainer) {
+        listContainer.innerHTML = '';
+
+        if (finalExpenses.length === 0) {
+          listContainer.innerHTML = '<p class="text-xs text-dark-muted text-center py-6">Операций не найдено</p>';
+          return;
+        }
+
+        finalExpenses.forEach(exp => {
+          const cat = State.categories.find(c => c.id === exp.categoryId) || { name: 'Расход', emoji: '💸' };
+          const row = document.createElement('div');
+          row.className = 'p-3 rounded-2xl bg-white/5 border border-dark-border/60 flex items-center justify-between';
+          row.innerHTML = `
+            <div class="flex items-center gap-3">
+              <span class="text-2xl p-1.5 rounded-xl bg-white/5 border border-dark-border">${cat.emoji}</span>
+              <div>
+                <p class="text-xs font-bold text-white">${cat.name}</p>
+                <p class="text-[10px] text-dark-muted">${exp.date} ${exp.note ? '• ' + exp.note : ''}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="text-xs font-mono font-bold text-white">- ${Number(exp.amount).toLocaleString('ru-RU')} ₽</span>
+              <button class="p-1 text-dark-muted hover:text-red-400" onclick="deleteExpenseItem('${exp.id}')">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          `;
+          listContainer.appendChild(row);
+        });
+      }
+
+      lucide.createIcons();
+    }
+
+    /* ----------------------------------------------------
+     * 4. ИНИЦИАЛИЗАЦИЯ И СЛУШАТЕЛИ
+     * ---------------------------------------------------- */
+    document.addEventListener('DOMContentLoaded', async () => {
+      const options = { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
+      const dateEl = document.getElementById('header-date');
+      if (dateEl) dateEl.innerText = new Date().toLocaleDateString('ru-RU', options);
+
+      // Загрузка данных с сервера Render
+      const initData = await Api.init();
+      State.categories = initData.categories || [];
+      State.expenses = initData.expenses || [];
+      State.dailyLimit = initData.dailyLimit || 2000;
+      State.selectedCategoryId = State.categories[0]?.id || null;
+
+      updateHeaderMonthTotal();
+      renderCategoryGrid();
+      lucide.createIcons();
+
+      // Навигационные вкладки
+      document.querySelectorAll('.nav-tab').forEach(tabBtn => {
+        tabBtn.addEventListener('click', () => switchTab(tabBtn.dataset.tab));
+      });
+
+      // Переключение дат: Сегодня / Вчера
+      document.querySelectorAll('.date-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          haptic('light');
+          document.querySelectorAll('.date-pill').forEach(b => {
+            b.className = 'date-pill flex-1 py-2 rounded-full text-xs font-semibold border border-dark-border glass-pill text-dark-muted transition-all hover:text-white';
+          });
+          btn.className = 'date-pill flex-1 py-2 rounded-full text-xs font-semibold border transition-all glass-pill text-lime-accent border-lime-accent shadow-neon-pill';
+
+          const mode = btn.dataset.date;
+          State.selectedDate = mode === 'yesterday' ? yesterdayStr : todayStr;
+        });
+      });
+
+      const customDatePicker = document.getElementById('custom-date-picker');
+      if (customDatePicker) {
+        customDatePicker.addEventListener('change', (e) => {
+          if (e.target.value) {
+            State.selectedDate = e.target.value;
+            haptic('light');
+            document.querySelectorAll('.date-pill').forEach(b => {
+              b.className = 'date-pill flex-1 py-2 rounded-full text-xs font-semibold border border-dark-border glass-pill text-dark-muted transition-all hover:text-white';
+            });
+          }
+        });
+      }
+
+      // Сохранение расхода
+      const addExpBtn = document.getElementById('btn-add-expense');
+      if (addExpBtn) {
+        addExpBtn.addEventListener('click', async () => {
+          const amountInput = document.getElementById('expense-amount');
+          const noteInput = document.getElementById('expense-note');
+          const amount = parseFloat(amountInput.value);
+
+          if (!amount || isNaN(amount) || amount <= 0) {
+            haptic('error');
+            amountInput.focus();
+            return;
+          }
+
+          if (!State.selectedCategoryId) {
+            haptic('error');
+            alert('Пожалуйста, выберите категорию');
+            return;
+          }
+
+          const newExpense = {
+            id: 'exp_' + Date.now(),
+            amount: amount,
+            categoryId: State.selectedCategoryId,
+            note: noteInput.value.trim(),
+            date: State.selectedDate
+          };
+
+          State.expenses.unshift(newExpense);
+          await Api.addExpense(newExpense);
+          updateHeaderMonthTotal();
+
+          haptic('success');
+          amountInput.value = '';
+          noteInput.value = '';
+        });
+      }
+
+      // Перелистывание недель
+      document.getElementById('prev-week-btn')?.addEventListener('click', () => {
+        haptic('light');
+        State.weekOffset -= 1;
+        renderAnalytics();
+      });
+
+      document.getElementById('next-week-btn')?.addEventListener('click', () => {
+        haptic('light');
+        State.weekOffset += 1;
+        renderAnalytics();
+      });
+
+      // Сохранение лимита
+      document.getElementById('btn-save-limit')?.addEventListener('click', async () => {
+        const input = document.getElementById('daily-limit-input');
+        const val = parseFloat(input.value);
+        if (val && val > 0) {
+          State.dailyLimit = val;
+          await Api.updateLimit(val);
+          haptic('success');
+          alert('Норма трат успешно обновлена!');
+        } else {
+          haptic('error');
+        }
+      });
+
+      // Модалка: Все операции
+      const allOpsModal = document.getElementById('all-ops-modal');
+      const allOpsContent = document.getElementById('all-ops-modal-content');
+
+      function openAllOps() {
+        haptic('light');
+        State.allOpsFilter.selectedDay = null;
+        renderAllOperationsModal();
+        allOpsModal.classList.remove('hidden');
+        setTimeout(() => {
+          allOpsModal.classList.remove('opacity-0');
+          allOpsContent.classList.remove('translate-y-full');
+        }, 10);
+      }
+
+      function closeAllOps() {
+        allOpsModal.classList.add('opacity-0');
+        allOpsContent.classList.add('translate-y-full');
+        setTimeout(() => allOpsModal.classList.add('hidden'), 300);
+      }
+
+      document.getElementById('btn-open-all-ops')?.addEventListener('click', openAllOps);
+      document.getElementById('btn-close-all-ops')?.addEventListener('click', closeAllOps);
+      allOpsModal?.addEventListener('click', (e) => {
+        if (e.target === allOpsModal) closeAllOps();
+      });
+
+      document.querySelectorAll('.period-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          haptic('light');
+          document.querySelectorAll('.period-pill').forEach(b => {
+            b.className = 'period-pill flex-1 py-1.5 rounded-xl text-xs font-semibold text-center text-dark-muted hover:text-white transition-all';
+          });
+          btn.className = 'period-pill flex-1 py-1.5 rounded-xl text-xs font-semibold text-center transition-all bg-lime-accent text-black font-bold shadow-neon-pill';
+
+          State.allOpsFilter.period = btn.dataset.period;
+          State.allOpsFilter.selectedDay = null;
+          renderAllOperationsModal();
+        });
+      });
+
+      document.getElementById('btn-reset-day-filter')?.addEventListener('click', () => {
+        haptic('light');
+        State.allOpsFilter.selectedDay = null;
+        renderAllOperationsModal();
+      });
+
+      // Модалка: Новая категория
+      const catModal = document.getElementById('category-modal');
+      const catModalContent = document.getElementById('category-modal-content');
+
+      function openCatModal() {
+        haptic('light');
+        catModal.classList.remove('hidden');
+        setTimeout(() => {
+          catModal.classList.remove('opacity-0');
+          catModalContent.classList.remove('translate-y-full');
+        }, 10);
+      }
+
+      function closeCatModal() {
+        catModal.classList.add('opacity-0');
+        catModalContent.classList.add('translate-y-full');
+        setTimeout(() => catModal.classList.add('hidden'), 300);
+      }
+
+      document.getElementById('btn-open-category-modal')?.addEventListener('click', openCatModal);
+      document.getElementById('btn-close-category-modal')?.addEventListener('click', closeCatModal);
+      catModal?.addEventListener('click', (e) => {
+        if (e.target === catModal) closeCatModal();
+      });
+
+      document.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          haptic('light');
+          State.selectedModalEmoji = btn.dataset.emoji;
+          const preview = document.getElementById('selected-emoji-preview');
+          if (preview) preview.innerText = State.selectedModalEmoji;
+        });
+      });
+
+      document.getElementById('btn-save-category')?.addEventListener('click', async () => {
+        const nameInput = document.getElementById('new-category-name');
+        const name = nameInput.value.trim();
+
+        if (!name) {
+          haptic('error');
+          nameInput.focus();
+          return;
+        }
+
+        const newCat = {
+          id: 'cat_' + Date.now(),
+          name: name,
+          emoji: State.selectedModalEmoji
+        };
+
+        State.categories.push(newCat);
+        await Api.addCategory(newCat);
+
+        haptic('success');
+        nameInput.value = '';
+        closeCatModal();
+        renderSettings();
+        renderCategoryGrid();
+      });
+    });
+  </script>
+</body>
+</html>
